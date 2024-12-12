@@ -1,17 +1,8 @@
 import networkx as nx
-from collections import defaultdict
-from itertools import combinations
-from dwave.system.samplers import DWaveSampler
-from dwave.system.composites import EmbeddingComposite
 import math
-from neal import SimulatedAnnealingSampler
 import sys
-import dwave_networkx as dnx
-import dimod
 from collections import Counter
 import time
-from scipy import stats
-import statistics 
 from utils import solve_QUBO, checkBalance, makePermutation
 
 
