@@ -157,7 +157,8 @@ def main():
         res[i]["swapFrequency"] = [item[1] for item in uniqueSwapCounts if item[0] == res[i]["swapCount"]][0]/N
     
     res_sorted = sorted(res, key= lambda x: x["swapFrequency"], reverse=True)
-
+    
+    # ------- Print set of qubit permutations with the corresponding SWAP count and its frequency -------
     for i in range(len(res_sorted)):
         print(*list(res_sorted[i].values()), sep=";")
         print("\n")
