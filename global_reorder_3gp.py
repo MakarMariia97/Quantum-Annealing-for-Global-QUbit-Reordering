@@ -12,52 +12,12 @@ from collections import Counter
 import time
 from scipy import stats
 import statistics 
-
-def solve_QUBO(G, nparts, vdegree, sim):
-    # ------- Set up our QUBO dictionary -------
-    # Initialize our Q matrix
-    Q = defaultdict(int)
-
-    nNodes = len(G.nodes)
- 
-    alpha_lagr = 4
-
-    for i in range(3):
-        for u in range(len(G.nodes)):
-            Q[(i*nNodes+u,i*nNodes+u)] += vdegree[u] + (1-2*nNodes/3)*alpha_lagr - alpha_lagr
-        for v, w in combinations(G.nodes, 2):
-            Q[(i*nNodes+list(G.nodes).index(v), i*nNodes+list(G.nodes).index(w))] += 2*alpha_lagr
-        for v, w, d in G.edges(data=True):
-            Q[(i*nNodes+list(G.nodes).index(v), i*nNodes+list(G.nodes).index(w))] += -2*d["weight"]
-    for i, j in combinations(range(3), 2):
-        for u in range(len(G.nodes)):
-            Q[(i*nNodes+u, j*nNodes+u)] += 2*alpha_lagr
-
-    # Run the QUBO on the solver from your config file
-
-    if sim:
-        sampler = SimulatedAnnealingSampler()
-        response = sampler.sample_qubo(Q,
-                                   num_reads=num_reads,
-                                   label='Example - Graph Partitioning')
-    else:
-        sampler = EmbeddingComposite(DWaveSampler())
-        response = sampler.sample_qubo(Q,
-                                    num_reads=num_reads,
-                                   label='Example - Graph Partitioning',return_embedding=True)
-        embed_info =  response.info['embedding_context']['embedding']
-        print(f"Number of logical variables: {len(embed_info.keys())}")
-        print(f"Number of physical qubits used in embedding: {sum(len(chain) for chain in embed_info.values())}")
-
-
-    sample = response.record.sample[0]
-
-    return sample
+from utils import solve_QUBO, checkBalance, makePermutation
 
 
 def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     print_graph(G)
-
+    k=3
     if (nparts>1):
         nNodes = len(G.nodes)
         is_ok = [-1]*nNodes
@@ -65,32 +25,15 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
         unbal=-1
         while (sum(is_ok)!=0 and unbal!=0):
             trials += 1
-            sample = solve_QUBO(G, nparts, vdegree, sim)
+            sample = solve_QUBO(G, vdegree, k, sim)
             for i in range(nNodes):
                 if (sample[i]+sample[nNodes+i]+sample[2*nNodes+i] == 1):
                     is_ok[i] = 0
                 else:
                     is_ok[i] = -1
-            part3 = [-1]*nNodes
-            for i in range(3):
-                for u in range(len(G.nodes)):
-                    if sample[i*nNodes+u] == 1:
-                        part3[u] = i
-
-            dd=[0]*3
-            for i in range(3):
-                dd[i] = len([o for o, e in enumerate(part3) if e == i])
-                if (dd[i] in [math.floor(len(G.nodes)/3), math.ceil(len(G.nodes)/3)]):
-                    unbal=0
-                else:
-                    unbal=-1
-            if (sum(part3) % 3 != 0):
-                if (part3.count(-1)>0):
-                    part3[part3.index(-1)] = nNodes - sum(part3)
-                duples = [x for n, x in enumerate(part3) if x in part3[:n]]
-                if (duples != []):
-                    unbal=-1
-
+            part3 = makePermutation(G, nNodes, k, sample)
+            unbal = checkBalance(G, nNodes, part3, k)
+            
         # partition graph into 3 parts
         lG = nx.Graph()
         mG = nx.Graph()
@@ -111,22 +54,22 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
             if part3[list(G.nodes).index(u)] == 2 and part3[list(G.nodes).index(v)] == 2:
                 rG.add_edge(u, v,  weight = d["weight"])
 
-        if (len(list(lG.nodes)) <= 2 and len(list(mG.nodes)) <= 2 and len(list(rG.nodes)) <= 2):
+        if (len(list(lG.nodes)) < k and len(list(mG.nodes)) < k and len(list(rG.nodes)) < k):
             return (list(lG.nodes) + list(mG.nodes) + list(rG.nodes),trials)
 
-        if (len(list(lG.nodes())) >= 3):
+        if (len(list(lG.nodes())) >= k):
             total_ord_from_part_lG, trial_lG = graphPart(
-                lG, math.floor(nparts/3), list(dict(lG.degree(weight="weight")).values()), total_ordering, trials)
+                lG, math.floor(nparts/k), list(dict(lG.degree(weight="weight")).values()), total_ordering, trials)
             total_ordering = total_ordering + total_ord_from_part_lG
             trials = trial_lG
-        if (len(list(mG.nodes())) >= 3):
+        if (len(list(mG.nodes())) >= k):
             total_ord_from_part_mG, trial_mG = graphPart(
-                mG, math.floor(nparts/3), list(dict(mG.degree(weight="weight")).values()), total_ordering, trials)
+                mG, math.floor(nparts/k), list(dict(mG.degree(weight="weight")).values()), total_ordering, trials)
             total_ordering = total_ordering + total_ord_from_part_mG
             trials = trial_mG
-        if (len(rG.nodes) >= 3):
+        if (len(rG.nodes) >= k):
             total_ord_from_part_rG, trial_rG = graphPart(
-                rG, math.floor(nparts/3), list(dict(rG.degree(weight="weight")).values()), [], trials)
+                rG, math.floor(nparts/k), list(dict(rG.degree(weight="weight")).values()), [], trials)
             total_ordering = total_ordering + total_ord_from_part_rG
             trials = trial_rG
 
@@ -138,13 +81,9 @@ def print_graph(G):
     print("nodes", G.nodes)
     print("edges", G.edges)
 
-# ------- Set tunable parameters -------
-num_reads = 1000
-
 def calculateSWAP(total_ordering, gates):
     sum=0
     for u, v, w in gates:
-    #    print ("u v w ", u, v, w)
         ind_v = list(total_ordering).index(v)
         ind_w = list(total_ordering).index(w)
         if (u != -1):
@@ -237,20 +176,6 @@ def main():
     for i in range(len(res_sorted)):
         print(*list(res_sorted[i].values()), sep=";")
         print("\n")
-
-    skew = stats.skew(swapCounts)
-    mean = statistics.mean(swapCounts)
-    mode = statistics.mode(swapCounts)
-    median = statistics.median(swapCounts)
-
-    print("skewness ", skew)
-    print("mean ", mean)
-    print("mode ", mode)
-    print("median ", median)
-    print("trials ", sum(trials))
-
-    end_time = time.time()
-    print("time ", end_time - start_time)
     
   #  sys.stdout = orig_stdout
  #   f.close()
