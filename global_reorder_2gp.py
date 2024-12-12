@@ -24,9 +24,8 @@ import sys
 from collections import Counter
 
 def solve_QUBO(G, trials, sim):
-    print("G",G)
     # ------- Set up our QUBO dictionary -------
-      # Initialize our Q matrix
+    # Initialize our Q matrix
     Q = defaultdict(int)
 
     # Fill in Q matrix
@@ -80,10 +79,7 @@ def solve_QUBO(G, trials, sim):
 def graphPart(G, nparts, total_ordering, trials, sim=False):
     print("Graph on {} nodes created with {} out of {} possible edges.".format(
         len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
-    print("nodes", G.nodes)
-    print("edges", G.edges)
-
-    print("nparts", nparts)
+    
     if (nparts > 1):
         sample, trial = solve_QUBO(G, trials, sim)
 
@@ -104,10 +100,11 @@ def graphPart(G, nparts, total_ordering, trials, sim=False):
                 lG.add_edge(u, v, weight = d["weight"])
             if sample[list(G.nodes).index(u)] == 1 and sample[list(G.nodes).index(v)] == 1:
                 rG.add_edge(u, v,  weight = d["weight"])
-
+                
+        # Graphs cannot be partitioned balanced again
         if (len(list(lG.nodes)) == 1 & len(list(rG.nodes)) == 1):
             return (list(lG.nodes) + list(rG.nodes), trial)
-
+        # Partition graphs
         if (len(list(lG.nodes())) >= 2):
             total_ord_from_part_lG, trial_lG = graphPart(
                 lG, math.floor(nparts/2), total_ordering, trial,sim)
@@ -153,18 +150,13 @@ def calculateSWAP(total_ordering, gates):
 # ------- Set tunable parameters -------
 num_reads = 1000
 
-# ------- Set up our graph -------
-
-
 def main():
-  #  orig_stdout = sys.stdout
- #   f = open('SA_MULT_19_13_out_graph_2part_gamma96.txt', 'w')
-  #  sys.stdout = f
-  #  nq=16 # mult
-    nq=8 # ham7
-  #  nq = 4 # decod24
+  #  nq=16 # number of qubits for multiplier gate
+    nq=8 # number of qubits for Hamming gate and modified circuit from [31]
+  #  nq = 4 # number of qubits for 2-4 decoder and double Toffoli
     nparts = nq
     sim=True
+    
     # Create graph with nq vertices and edges from the set of circuit's gates
     G = nx.Graph()
     for i in range(nq):
@@ -172,11 +164,9 @@ def main():
 
     #circuit [31]
     G.add_weighted_edges_from([(3,4,1), (1,4,1),(0,5,1),(3,5,1),(0,6,1),(3,6,2),(2,5,1),(5,6,2),(2,6,1), (1, 7, 1)])
+    # set circuit's gates in a form of (control1, control2, target), if there is only one control, then control1=-1 and control2=control
     gates = [(-1, 3, 4), (-1, 1, 4), (0, 3, 5), (0, 3, 6), (-1, 3, 6), (2, 6, 5), (2, 5, 6), (-1, 1, 7)]
 
-    #rd_84 G.add_weighted_edges_from([(0,1,1),(0,8,1),(1,2,1),(1,8,2),(2,3,1),(2,8,2),(2,9,1),(3,4,1,),(3,8,2),(3,9,1),(3,10,1),(4,5,1),(4,8,2,),(4,9,1),(4,10,1),(4,11,1),(5,6,1),(5,8,2),(5,9,1),(5,10,1),(5,12,1),(6,7,1),(6,8,2),(6,9,1),(6,10,1),(6,13,1),(7,8,1),(7,10,1),(7,14,1),(8,9,5),(9,10,5),(10,11,1),(11,12,1),(12,13,1),(13,14,1)])
-    #gates=[(0,1,8),(-1,0,1),(2,8,9),(1,2,8),(-1,1,2),(3,9,10),(3,8,9),(2,3,8),(-1,2,3),(4,10,11),(4,9,10),(4,8,9),(3,4,8),(-1,3,4),(5,11,12),(5,9,10),(5,8,9),(4,5,8),(-1,4,5),(6,12,13),(6,9,10),(6,8,9),(5,6,8),(-1,5,6),(7,13,14),(7,9,10),(6,7,8),(-1,6,7)]
-    
     # multiplier
   #  G.add_weighted_edges_from([(3,8,1),(5,8,1),(2,8,1),(6,8,1),(1,8,1),(7,8,1),(3,9,1),(6,9,1),(2,9,1),(7,9,1),(3,10,1),(7,10,1),(10,11,1),(9,10,1),(8,9,1),(3,11,1),(4,11,1),(2,11,1),(5,11,1),(1,11,1),(6,11,1),(0,11,1),(7,11,1),(2,10,1),(4,10,1),(1,10,1),(5,10,1),(0,10,1),(6,10,1),(1,9,1),(4,9,1),(0,9,1),(5,9,1),(0,8,1),(4,8,1)])
   #  gates = [(3,5,8),(2,6,8),(1,7,8),(3,6,9),(2,7,9),(3,7,10),(-1,10,11),(-1,9,10),(-1,8,9),(3,4,11),(2,5,11),(1,6,11),(0,7,11),(2,4,10),(1,5,10),(0,6,10),(1,4,9),(0,5,9),(0,4,8)]
@@ -219,10 +209,6 @@ def main():
     for i in range(len(res_sorted)):
         print(*list(res_sorted[i].values()), sep=";")
         print("\n")
-
-
- #   sys.stdout = orig_stdout
-  #  f.close()
 
     return 0
 
