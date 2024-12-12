@@ -8,6 +8,7 @@ from neal import SimulatedAnnealingSampler
 # ------- Set tunable parameters -------
 num_reads = 1000
 
+# function to partition graph G into k parts using Quantum Annealing or Simulated Annealing
 def solve_QUBO(G, vdegree, k, sim):
     # ------- Set up our QUBO dictionary -------
     # Initialize our Q matrix
@@ -15,7 +16,7 @@ def solve_QUBO(G, vdegree, k, sim):
 
     nNodes = len(G.nodes)
  
-    alpha_lagr = 4
+    alpha_lagr = 4 # penalty constant
     for i in range(k):
         for u in range(len(G.nodes)):
             Q[(i*nNodes+u,i*nNodes+u)] += vdegree[u] + (1-2*nNodes/k)*alpha_lagr - alpha_lagr
@@ -28,7 +29,6 @@ def solve_QUBO(G, vdegree, k, sim):
             Q[(i*nNodes+u, j*nNodes+u)] += 2*alpha_lagr
 
     # Run the QUBO on the solver from your config file
-
     if sim:
         sampler = SimulatedAnnealingSampler()
         response = sampler.sample_qubo(Q,
@@ -46,6 +46,7 @@ def solve_QUBO(G, vdegree, k, sim):
 
     return sample
 
+# function to check if partition is balanced 
 def checkBalance(G, nNodes, part, k):
     dd=[0]*k
     unbal=-1
@@ -55,14 +56,9 @@ def checkBalance(G, nNodes, part, k):
             unbal=0
         else:
             unbal=-1
-    if (sum(part) % sum(range(k+1)) != 0):
-        if (part.count(-1)>0):
-            part[part.index(-1)] = nNodes - sum(part)
-        duples = [x for n, x in enumerate(part) if x in part[:n]]
-        if (duples != []):
-            unbal=-1
     return unbal
 
+# function to convert binary sample to qubit permutation
 def makePermutation(G, nNodes, k, sample):
     part = [-1]*nNodes
     for i in range(k):
