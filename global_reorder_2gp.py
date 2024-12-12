@@ -183,7 +183,7 @@ def main():
   #  G.add_weighted_edges_from([(2,1,2),(1,0,2),(0,3,2),(1,3,1)])
   #  gates = [(-1,2,1),(-1,1,0),(-1,0,3),(-1,1,0),(-1,0,3),(-1,1,3),(-1,2,1)]
 
-    N = 1 # number of repetitions of the algorithm to study the sensetivity to penalty costant
+    N = 1 # number of repetitions of the algorithm to study the sensitivity to penalty costant
     res=[]
     swapCounts = []
     trials=[0]*N # number of unsuccessful trials during i-th run
