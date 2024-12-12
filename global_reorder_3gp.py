@@ -13,10 +13,8 @@ import time
 from scipy import stats
 import statistics 
 
-def solve_QUBO(G, nparts, vdegree):
-    #print("vdegree ", vdegree)
+def solve_QUBO(G, nparts, vdegree, sim):
     # ------- Set up our QUBO dictionary -------
-    print("nparts ", nparts)
     # Initialize our Q matrix
     Q = defaultdict(int)
 
@@ -24,97 +22,81 @@ def solve_QUBO(G, nparts, vdegree):
  
     alpha_lagr = 4
 
-    for i in range(4):
-    #    print("i ",i)
+    for i in range(3):
         for u in range(len(G.nodes)):
-    #        print("u ", u)
-            Q[(i*nNodes+u,i*nNodes+u)] += vdegree[u] + (1-2*nNodes/4)*alpha_lagr - alpha_lagr
+            Q[(i*nNodes+u,i*nNodes+u)] += vdegree[u] + (1-2*nNodes/3)*alpha_lagr - alpha_lagr
         for v, w in combinations(G.nodes, 2):
             Q[(i*nNodes+list(G.nodes).index(v), i*nNodes+list(G.nodes).index(w))] += 2*alpha_lagr
         for v, w, d in G.edges(data=True):
             Q[(i*nNodes+list(G.nodes).index(v), i*nNodes+list(G.nodes).index(w))] += -2*d["weight"]
-    for i, j in combinations(range(4), 2):
+    for i, j in combinations(range(3), 2):
         for u in range(len(G.nodes)):
             Q[(i*nNodes+u, j*nNodes+u)] += 2*alpha_lagr
+
     # Run the QUBO on the solver from your config file
 
-    #print("Q ", Q)
-
-  #  sampler = EmbeddingComposite(DWaveSampler())
-
-    sampler = SimulatedAnnealingSampler()
-    response = sampler.sample_qubo(Q,
-                                   #chain_strength=100,
+    if sim:
+        sampler = SimulatedAnnealingSampler()
+        response = sampler.sample_qubo(Q,
                                    num_reads=num_reads,
-                                   label='Example - Graph Partitioning')#,return_embedding=True)
+                                   label='Example - Graph Partitioning')
+    else:
+        sampler = EmbeddingComposite(DWaveSampler())
+        response = sampler.sample_qubo(Q,
+                                    num_reads=num_reads,
+                                   label='Example - Graph Partitioning',return_embedding=True)
+        embed_info =  response.info['embedding_context']['embedding']
+        print(f"Number of logical variables: {len(embed_info.keys())}")
+        print(f"Number of physical qubits used in embedding: {sum(len(chain) for chain in embed_info.values())}")
+
 
     sample = response.record.sample[0]
-    print("length of sample ", len(sample))
-  #  embed_info =  response.info['embedding_context']['embedding']
-  #  print(f"Number of logical variables: {len(embed_info.keys())}")
-  #  print(f"Number of physical qubits used in embedding: {sum(len(chain) for chain in embed_info.values())}")
-    #print(sample)
+
     return sample
 
 
-def graphPart(G, nparts, vdegree, total_ordering, trials):
+def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     print_graph(G)
     print("nparts ",nparts)
 
     if (nparts>1):
         nNodes = len(G.nodes)
         is_ok = [-1]*nNodes
-        indices_ones = [-1]
-        duples_ones=[-1]
-        indices_col = [-1]
-        duples_col=[-1]
         trials -= 1
         unbal=-1
         while (sum(is_ok)!=0 and unbal!=0):
             trials += 1
-            sample = solve_QUBO(G, nparts, vdegree)
-            #print("sample in while ", sample)
-            #print("sample ", sample)
+            sample = solve_QUBO(G, nparts, vdegree, sim)
             for i in range(nNodes):
                 if (sample[i]+sample[nNodes+i]+sample[2*nNodes+i] == 1):
                     is_ok[i] = 0
                 else:
                     is_ok[i] = -1
             part3 = [-1]*nNodes
-            # print("part3 ", part3)
             for i in range(3):
                 for u in range(len(G.nodes)):
                     if sample[i*nNodes+u] == 1:
-        #            print("u ", u)
                         part3[u] = i
             print("part3 ", part3)
 
             dd=[0]*3
             for i in range(3):
-          #      print(i, "partition")
                 dd[i] = len([o for o, e in enumerate(part3) if e == i])
-          #      print(dd[i], "elements")
                 if (dd[i] in [math.floor(len(G.nodes)/3), math.ceil(len(G.nodes)/3)]):
-                  #  print(i, "balanced")
                     unbal=0
                 else:
-               #     print(i, "unbalanced")
                     unbal=-1
+            if (sum(part3) % 3 != 0):
+                if (part3.count(-1)>0):
+                    part3[part3.index(-1)] = nNodes - sum(part3)
+                duples = [x for n, x in enumerate(part3) if x in part3[:n]]
+                if (duples != []):
+                    unbal=-1
+
         # partition graph into 3 parts
         lG = nx.Graph()
         mG = nx.Graph()
         rG = nx.Graph()
-        print("balanced:", part3)
-
-
-        if (sum(part3) % 2 != 0):
-           # print("HERE!!!")
-            if (part3.count(-1)>0):
-                part3[part3.index(-1)] = nNodes - sum(part3)
-            duples = [x for n, x in enumerate(part3) if x in part3[:n]]
-            if (duples != []):
-                part3[part3.index(duples[0])] = abs(nNodes - sum(part3))
-       # print("part3 after removing duplicates ", part3)
         for u in range(len(G.nodes)):
             if part3[u] == 0:
                 lG.add_node(list(G.nodes)[u])
@@ -122,9 +104,8 @@ def graphPart(G, nparts, vdegree, total_ordering, trials):
                 mG.add_node(list(G.nodes)[u])
             if part3[u] == 2:
                 rG.add_node(list(G.nodes)[u])
-
         for u, v, d in G.edges(data=True):
-            #print("u, v", u, v)
+
             if part3[list(G.nodes).index(u)] == 0 and part3[list(G.nodes).index(v)] == 0:
                 lG.add_edge(u, v, weight = d["weight"])
             if part3[list(G.nodes).index(u)] == 1 and part3[list(G.nodes).index(v)] == 1:
@@ -132,43 +113,25 @@ def graphPart(G, nparts, vdegree, total_ordering, trials):
             if part3[list(G.nodes).index(u)] == 2 and part3[list(G.nodes).index(v)] == 2:
                 rG.add_edge(u, v,  weight = d["weight"])
 
-
-
-        if (len(list(lG.nodes)) <= 3 and len(list(mG.nodes)) <= 3 and len(list(rG.nodes)) <= 3):
-      #      print("partial ord ", list(llG.nodes) + list(lG.nodes) + list(rG.nodes) + list(rrG.nodes))
+        if (len(list(lG.nodes)) <= 2 and len(list(mG.nodes)) <= 2 and len(list(rG.nodes)) <= 2):
             return (list(lG.nodes) + list(mG.nodes) + list(rG.nodes),trials)
 
         if (len(list(lG.nodes())) >= 3):
             total_ord_from_part_lG, trial_lG = graphPart(
                 lG, math.floor(nparts/3), list(dict(lG.degree(weight="weight")).values()), total_ordering, trials)
-        #    print("partial ordering AFTER PARTITIONING llG ",
-        #          total_ord_from_part_llG)
-        #    print("total ordering before ", total_ordering)
             total_ordering = total_ordering + total_ord_from_part_lG
             trials = trial_lG
-         #   print("total ordering after ", total_ordering)
         if (len(list(mG.nodes())) >= 3):
             total_ord_from_part_mG, trial_mG = graphPart(
                 mG, math.floor(nparts/3), list(dict(mG.degree(weight="weight")).values()), total_ordering, trials)
-         #   print("partial ordering AFTER PARTITIONING lG ",
-        #          total_ord_from_part_lG)
-        #    print("total ordering before ", total_ordering)
             total_ordering = total_ordering + total_ord_from_part_mG
             trials = trial_mG
-        #    print("total ordering after ", total_ordering)
         if (len(rG.nodes) >= 3):
             total_ord_from_part_rG, trial_rG = graphPart(
                 rG, math.floor(nparts/3), list(dict(rG.degree(weight="weight")).values()), [], trials)
-       #     print("partial ordering AFTER PARTITIONING rG ",
-       #           total_ord_from_part_rG)
-        #    print("total ordering before ", total_ordering)
             total_ordering = total_ordering + total_ord_from_part_rG
             trials = trial_rG
-        #    print("total ordering after ", total_ordering)
 
-        #    print("total ordering after ", total_ordering)
-
-    #print(total_ordering)
     return (total_ordering, trials)
 
 def print_graph(G):
@@ -179,9 +142,7 @@ def print_graph(G):
 
 # ------- Set tunable parameters -------
 num_reads = 1000
-#gamma = 80
 
-# ------- Set up our graph -------
 
 
 def calculateSWAP(total_ordering, gates):
@@ -231,6 +192,8 @@ def main():
    # nq=8 # ham7
   #  nq=4
   #  nq=12
+    sim=True
+
     G = nx.Graph()
     G.add_nodes_from(range(nq))
     #G.add_weighted_edges_from([(0, 1, 1), (1, 2, 1), (1, 3, 2)])
@@ -259,57 +222,21 @@ def main():
 
     vdegree = list(dict(G.degree(weight="weight")).values())
     nparts = nq
-    
-    # RELABEL the graph to count the new distance
-    #total_ordering = graphPart(G, nparts, vdegree, [])
-    #print(total_ordering)
-  #  mapping={}
-  #  for i in range(len(total_ordering)):
-  #      mapping[total_ordering[i]]=i
-
-  #  print("total order")
-
-  #  for i in range(nparts):
-   #     print("part ", i)
-   #     for j in range(nq):
-   #         print(total_ordering[i*nq+j], end=" ")
-   #     print("\n")
-    
-  #  Gnew=nx.relabel_nodes(G,mapping)
-    
-  #  print_graph(Gnew)
-  #  distance(Gnew)
-    
-    #print("total ordering", graphPart(G, nparts, []))
+ 
     N = 1
     res=[]
     swapCounts = []
     trials = [0]*N
     for i in range(N):
-        #print("iteration i ", i)
         total_ordering = [-1]
         while (total_ordering.count(-1) > 0 or len(total_ordering) != len(G.nodes)):
-            total_ordering, tr = graphPart(G, nparts, vdegree, [], trials[i])
+            total_ordering, tr = graphPart(G, nparts, vdegree, [], trials[i],sim)
             trials[i] = tr
-            #print(total_ordering)
-        if (total_ordering.count(12) > 0):
-            total_ordering.remove(12)
-        if (total_ordering.count(13) > 0):
-            total_ordering.remove(13)
-        if (total_ordering.count(14) > 0):
-            total_ordering.remove(14)
-        if (total_ordering.count(15) > 0):
-            total_ordering.remove(15)
-        #if (total_ordering.count(7) > 0):
-        #    total_ordering.remove(7)
-            #print(total_ordering)
         swapCount = calculateSWAP(total_ordering, gates)
         res.append({"total_ordering": total_ordering, "swapCount": swapCount})
         swapCounts.append(swapCount)
-    #res_sorted = sorted(res, key= lambda x: x["swapCount"])
 
     uniqueSwapCounts = list(Counter(swapCounts).items())
-    #swapSum=Counter(swapCounts).total()
 
     for i in range(len(res)):
         res[i]["swapFrequency"] = [item[1] for item in uniqueSwapCounts if item[0] == res[i]["swapCount"]][0]/N
