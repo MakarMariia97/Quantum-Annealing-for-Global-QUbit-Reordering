@@ -57,7 +57,6 @@ def solve_QUBO(G, nparts, vdegree, sim):
 
 def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     print_graph(G)
-    print("nparts ",nparts)
 
     if (nparts>1):
         nNodes = len(G.nodes)
@@ -77,7 +76,6 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
                 for u in range(len(G.nodes)):
                     if sample[i*nNodes+u] == 1:
                         part3[u] = i
-            print("part3 ", part3)
 
             dd=[0]*3
             for i in range(3):
@@ -135,15 +133,13 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     return (total_ordering, trials)
 
 def print_graph(G):
- #   print("Graph on {} nodes created with {} out of {} possible edges.".format(
- #       len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
+    print("Graph on {} nodes created with {} out of {} possible edges.".format(
+        len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
     print("nodes", G.nodes)
- #   print("edges", G.edges)
+    print("edges", G.edges)
 
 # ------- Set tunable parameters -------
 num_reads = 1000
-
-
 
 def calculateSWAP(total_ordering, gates):
     sum=0
@@ -159,26 +155,21 @@ def calculateSWAP(total_ordering, gates):
             ind_v = max(a, b)
             if (ind_w < ind_u & ind_u < ind_v):
                 if (ind_u-ind_w>1):
-                    # modified calculation
                     sum+= abs(ind_u - ind_w) - 1 + abs(ind_v - ind_u) - 1
                 elif (ind_v - ind_u>1):
                         sum+=ind_v - ind_u - 1
-       #         print("sum ", sum)
             elif (ind_u < ind_w & ind_w < ind_v):
                 if (ind_w-ind_u>1):
                     sum+= abs(ind_w - ind_u) - 1
                 if (ind_v - ind_w>1):
                         sum+=ind_v - ind_w - 1
-         #       print("sum ", sum)
             elif (ind_u < ind_v & ind_v < ind_w):
                 if (ind_w - ind_v >1):
                     sum+= abs(ind_w - ind_v) - 1 + abs(ind_v - ind_u) - 1
                 elif (ind_v - ind_u>1):
                     sum+= abs(ind_v - ind_u) - 1
-          #      print("sum ", sum)
         else:
             sum+=abs(ind_v-ind_w) - 1
-          #  print("sum ", sum)
     return sum
 
 def main():
