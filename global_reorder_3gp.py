@@ -51,17 +51,17 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
         # Partition new graphs
         if (len(list(lG.nodes())) >= k):
             total_ord_from_part_lG, trial_lG = graphPart(
-                lG, math.floor(nparts/k), list(dict(lG.degree(weight="weight")).values()), total_ordering, trials)
+                lG, math.floor(nparts/k), list(dict(lG.degree(weight="weight")).values()), total_ordering, trials, sim)
             total_ordering = total_ordering + total_ord_from_part_lG
             trials = trial_lG
         if (len(list(mG.nodes())) >= k):
             total_ord_from_part_mG, trial_mG = graphPart(
-                mG, math.floor(nparts/k), list(dict(mG.degree(weight="weight")).values()), total_ordering, trials)
+                mG, math.floor(nparts/k), list(dict(mG.degree(weight="weight")).values()), total_ordering, trials, sim)
             total_ordering = total_ordering + total_ord_from_part_mG
             trials = trial_mG
         if (len(rG.nodes) >= k):
             total_ord_from_part_rG, trial_rG = graphPart(
-                rG, math.floor(nparts/k), list(dict(rG.degree(weight="weight")).values()), [], trials)
+                rG, math.floor(nparts/k), list(dict(rG.degree(weight="weight")).values()), [], trials, sim)
             total_ordering = total_ordering + total_ord_from_part_rG
             trials = trial_rG
 
