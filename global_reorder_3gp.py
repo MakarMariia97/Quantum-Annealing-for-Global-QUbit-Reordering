@@ -68,8 +68,6 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     return (total_ordering, trials)
 
 def main():
-    start_time = time.time()
-    
     nq=6 # number of qubits needed to optimize double Toffoli or 2-4 decoder (4 + 2 additional qubits)
     # nq=9 # number of qubits needed to optimize Hamming gate (7 + 2 additional qubits) or modified circuit from [31] (8 + 1 additional qubit)
     # nq=18 # number of qubits needed to optimize multiplier (12 + 6 additional qubits)
