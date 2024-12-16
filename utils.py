@@ -29,7 +29,7 @@ def solve_QUBO(G, vdegree, k, sim):
             Q[(i*nNodes+u, j*nNodes+u)] += 2*alpha_lagr
 
     # Run the QUBO on the solver from your config file
-    if sim:
+    if sim: # use Simulated Annealing in simulation mode
         sampler = SimulatedAnnealingSampler()
         response = sampler.sample_qubo(Q,
                                    num_reads=num_reads,
