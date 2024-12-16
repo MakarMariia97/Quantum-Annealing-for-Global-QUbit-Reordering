@@ -34,7 +34,7 @@ def solve_QUBO(G, trials, sim):
         Q[(v, v)] += d["weight"]
         Q[(u, v)] += -2*d["weight"]
 
-    g_par = 4
+    g_par = 4 # penalty constant
     for i in G.nodes():
         Q[(i, i)] += g_par*(1-len(G.nodes))
     for i, j in combinations(G.nodes, 2):
@@ -42,14 +42,14 @@ def solve_QUBO(G, trials, sim):
 
     # ------- Run our QUBO on the QPU -------
 
-    # Run the QUBO on the solver from your config file
+    # Run the QUBO on the solver
 
     sample = []
     sample.append(-1)
     trials -= 1
     while (sample[0] == -1):
         trials+=1
-        if sim:
+        if sim: # use Simulated Annealing in simulation mode
             sampler = SimulatedAnnealingSampler()
             response = sampler.sample_qubo(Q,
                                    num_reads=num_reads,
@@ -101,10 +101,11 @@ def graphPart(G, nparts, total_ordering, trials, sim=False):
             if sample[list(G.nodes).index(u)] == 1 and sample[list(G.nodes).index(v)] == 1:
                 rG.add_edge(u, v,  weight = d["weight"])
                 
-        # Graphs cannot be partitioned balanced again
+        # Check if new graphs cannot be partitioned balanced again
         if (len(list(lG.nodes)) == 1 & len(list(rG.nodes)) == 1):
             return (list(lG.nodes) + list(rG.nodes), trial)
-        # Partition graphs
+            
+        # Partition new graphs
         if (len(list(lG.nodes())) >= 2):
             total_ord_from_part_lG, trial_lG = graphPart(
                 lG, math.floor(nparts/2), total_ordering, trial,sim)
@@ -113,7 +114,6 @@ def graphPart(G, nparts, total_ordering, trials, sim=False):
         if (len(list(rG.nodes())) >= 2):
             total_ord_from_part_rG, trial_rG = graphPart(rG, math.floor(nparts/2), [], trials,sim)
             total_ordering = total_ordering + total_ord_from_part_rG
-            trials = trial_rG
 
     return (total_ordering, trials)
 
