@@ -3,7 +3,7 @@ import math
 import sys
 from collections import Counter
 import time
-from utils import solve_QUBO, checkBalance, makePermutation, print_graph
+from utils import solve_QUBO, checkBalance, makePermutation, print_graph, calculateSWAP
 
 # function to perform balanced partitioning of graph G into 3 parts recursively
 def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
