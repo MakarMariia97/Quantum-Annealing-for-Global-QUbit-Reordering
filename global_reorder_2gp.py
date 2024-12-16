@@ -22,6 +22,7 @@ import math
 from neal import SimulatedAnnealingSampler
 import sys
 from collections import Counter
+from utils import calculateSWAP
 
 def solve_QUBO(G, trials, sim):
     # ------- Set up our QUBO dictionary -------
@@ -116,36 +117,6 @@ def graphPart(G, nparts, total_ordering, trials, sim=False):
             total_ordering = total_ordering + total_ord_from_part_rG
 
     return (total_ordering, trials)
-
-def calculateSWAP(total_ordering, gates):
-    sum=0
-    for u, v, w in gates:
-        ind_v = list(total_ordering).index(v)
-        ind_w = list(total_ordering).index(w)
-        if (u != -1):
-            ind_u = list(total_ordering).index(u)
-            a = ind_u
-            b = ind_v
-            ind_u = min(a, b)
-            ind_v = max(a, b)
-            if (ind_w < ind_u & ind_u < ind_v):
-                if (ind_u-ind_w>1):
-                    sum+= abs(ind_u - ind_w) - 1 + abs(ind_v - ind_u) - 1
-                elif (ind_v - ind_u>1):
-                        sum+=ind_v - ind_u - 1
-            elif (ind_u < ind_w & ind_w < ind_v):
-                if (ind_w-ind_u>1):
-                    sum+= abs(ind_w - ind_u) - 1
-                if (ind_v - ind_w>1):
-                        sum+=ind_v - ind_w - 1
-            elif (ind_u < ind_v & ind_v < ind_w):
-                if (ind_w - ind_v >1):
-                    sum+= abs(ind_w - ind_v) - 1 + abs(ind_v - ind_u) - 1
-                elif (ind_v - ind_u>1):
-                    sum+= abs(ind_v - ind_u) - 1
-        else:
-            sum+=abs(ind_v-ind_w) - 1
-    return sum
 
 # ------- Set tunable parameters -------
 num_reads = 1000
