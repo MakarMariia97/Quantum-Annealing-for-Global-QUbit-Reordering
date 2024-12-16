@@ -44,7 +44,7 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
             if part3[list(G.nodes).index(u)] == 2 and part3[list(G.nodes).index(v)] == 2:
                 rG.add_edge(u, v,  weight = d["weight"])
                 
-        # New graphs cannot be partitioned again (not enough number of vertices)
+        # Check if new graphs cannot be partitioned again (not enough number of vertices)
         if (len(list(lG.nodes)) < k and len(list(mG.nodes)) < k and len(list(rG.nodes)) < k):
             return (list(lG.nodes) + list(mG.nodes) + list(rG.nodes),trials)
 
@@ -66,12 +66,6 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
             trials = trial_rG
 
     return (total_ordering, trials)
-
-def print_graph(G):
-    print("Graph on {} nodes created with {} out of {} possible edges.".format(
-        len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
-    print("nodes", G.nodes)
-    print("edges", G.edges)
 
 # function to calculate SWAP count according to the final qubit permutaion
 def calculateSWAP(total_ordering, gates):
