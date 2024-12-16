@@ -70,34 +70,40 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
 def main():
     start_time = time.time()
     
-    nq=6 # number of qubits needed to optimize double Toffoli or 2-4 decoder
-   # nq=9 # number of qubits needed to optimize Hamming gate or modified circuit from [31]
-  #  nq=18 # number of qubits needed to optimize multiplier
+    nq=6 # number of qubits needed to optimize double Toffoli or 2-4 decoder (4 + 2 additional qubits)
+    # nq=9 # number of qubits needed to optimize Hamming gate (7 + 2 additional qubits) or modified circuit from [31] (8 + 1 additional qubit)
+    # nq=18 # number of qubits needed to optimize multiplier (12 + 6 additional qubits)
 
     sim=True # simulation mode, if True
 
     G = nx.Graph()
     G.add_nodes_from(range(nq))
-    #circuit from [31]
- #   G.add_weighted_edges_from([(3,4,1), (1,4,1),(0,5,1),(3,5,1),(0,6,1),(3,6,2),(2,5,1),(5,6,2),(2,6,1), (1,7,1)]) # GRAPH FROM PAPER WITH SWAP COUNT 15
- #   gates = [(-1, 3, 4), (-1, 1, 4), (0, 3, 5), (0, 3, 6), (-1, 3, 6), (2, 6, 5), (2, 5, 6), (-1, 1, 7)]
-
-    # multiplier
-  #  G.add_weighted_edges_from([(3,8,1),(5,8,1),(2,8,1),(6,8,1),(1,8,1),(7,8,1),(3,9,1),(6,9,1),(2,9,1),(7,9,1),(3,10,1),(7,10,1),(10,11,1),(9,10,1),(8,9,1),(3,11,1),(4,11,1),(2,11,1),(5,11,1),(1,11,1),(6,11,1),(0,11,1),(7,11,1),(2,10,1),(4,10,1),(1,10,1),(5,10,1),(0,10,1),(6,10,1),(1,9,1),(4,9,1),(0,9,1),(5,9,1),(0,8,1),(4,8,1)])
-  #  gates = [(3,5,8),(2,6,8),(1,7,8),(3,6,9),(2,7,9),(3,7,10),(-1,10,11),(-1,9,10),(-1,8,9),(3,4,11),(2,5,11),(1,6,11),(0,7,11),(2,4,10),(1,5,10),(0,6,10),(1,4,9),(0,5,9),(0,4,8)]
+    # modified circuit from [31]
+    # G.add_weighted_edges_from([(3,4,1), (1,4,1),(0,5,1),(3,5,1),(0,6,1),(3,6,2),(2,5,1),(5,6,2),(2,6,1), (1,7,1)])
+    # set circuit's gates in a form of (control1, control2, target), if there is only one control, then control1=-1 and control2=control    
+    # gates = [(-1, 3, 4), (-1, 1, 4), (0, 3, 5), (0, 3, 6), (-1, 3, 6), (2, 6, 5), (2, 5, 6), (-1, 1, 7)]
+    # real_nq=8
     
-    # Hamming
-  #  G.add_weighted_edges_from([(4,5,2),(6,1,1),(6,2,2),(4,6,3),(5,6,2),(3,2,3),(3,0,4),(3,1,3),(5,3,3),(4,2,1),(4,3,1),(6,3,2),(1,4,1),(2,1,1),(2,5,1),(0,2,1)])
- #   gates = [(-1,4,5),(-1,6,1),(-1,6,2),(4,5,6),(-1,6,4),(-1,6,5),(-1,3,2),(-1,3,0),(-1,3,1),(2,5,3),(4,6,2),(2,5,3),(-1,3,1),(5,6,4),(-1,3,0),(-1,3,5),(4,6,3),(-1,1,4),(-1,2,1),(-1,3,6),(-1,2,5),(-1,1,3),(-1,3,0),(-1,0,3),(-1,0,2)]
+    # multiplier gate
+    # G.add_weighted_edges_from([(3,8,1),(5,8,1),(2,8,1),(6,8,1),(1,8,1),(7,8,1),(3,9,1),(6,9,1),(2,9,1),(7,9,1),(3,10,1),(7,10,1),(10,11,1),(9,10,1),(8,9,1),(3,11,1),(4,11,1),(2,11,1),(5,11,1),(1,11,1),(6,11,1),(0,11,1),(7,11,1),(2,10,1),(4,10,1),(1,10,1),(5,10,1),(0,10,1),(6,10,1),(1,9,1),(4,9,1),(0,9,1),(5,9,1),(0,8,1),(4,8,1)])
+    # gates = [(3,5,8),(2,6,8),(1,7,8),(3,6,9),(2,7,9),(3,7,10),(-1,10,11),(-1,9,10),(-1,8,9),(3,4,11),(2,5,11),(1,6,11),(0,7,11),(2,4,10),(1,5,10),(0,6,10),(1,4,9),(0,5,9),(0,4,8)]
+    # real_nq = 12
     
-    # double Toffoli
+    # Hamming gate 
+    # G.add_weighted_edges_from([(4,5,2),(6,1,1),(6,2,2),(4,6,3),(5,6,2),(3,2,3),(3,0,4),(3,1,3),(5,3,3),(4,2,1),(4,3,1),(6,3,2),(1,4,1),(2,1,1),(2,5,1),(0,2,1)])
+    # gates = [(-1,4,5),(-1,6,1),(-1,6,2),(4,5,6),(-1,6,4),(-1,6,5),(-1,3,2),(-1,3,0),(-1,3,1),(2,5,3),(4,6,2),(2,5,3),(-1,3,1),(5,6,4),(-1,3,0),(-1,3,5),(4,6,3),(-1,1,4),(-1,2,1),(-1,3,6),(-1,2,5),(-1,1,3),(-1,3,0),(-1,0,3),(-1,0,2)]
+    # real_nq = 7
+    
+    # double Toffoli date
     G.add_weighted_edges_from([(2,1,2),(1,0,2),(0,3,2),(1,3,1)])
     gates = [(-1,2,1),(-1,1,0),(-1,0,3),(-1,1,0),(-1,0,3),(-1,1,3),(-1,2,1)]
-
+    real_nq = 4
+    
     # 2-4 decoder
- #   G.add_weighted_edges_from([(2,1,3),(3,1,2),(3,0,1),(0,2,2)])
- #   gates = [(-1,2,1),(-1,3,1),(-1,3,0),(-1,0,2),(-1,2,1),(-1,1,2),(-1,2,0),(-1,1,3)] 
-
+    # G.add_weighted_edges_from([(2,1,3),(3,1,2),(3,0,1),(0,2,2)])
+    # gates = [(-1,2,1),(-1,3,1),(-1,3,0),(-1,0,2),(-1,2,1),(-1,1,2),(-1,2,0),(-1,1,3)] 
+    # real_nq = 4
+    
     vdegree = list(dict(G.degree(weight="weight")).values())
     nparts = nq
  
@@ -110,6 +116,9 @@ def main():
         while (total_ordering.count(-1) > 0 or len(total_ordering) != len(G.nodes)):
             total_ordering, tr = graphPart(G, nparts, vdegree, [], trials[i],sim)
             trials[i] = tr
+        for i in range(real_nq,nq): # exclude additional qubits
+            if (total_ordering.count(i) > 0):
+                total_ordering.remove(i)
         swapCount = calculateSWAP(total_ordering, gates)
         res.append({"total_ordering": total_ordering, "swapCount": swapCount})
         swapCounts.append(swapCount)
