@@ -47,7 +47,7 @@ def solve_QUBO(G, vdegree, k, sim):
     return sample
 
 # function to check if partition is balanced 
-def checkBalance(G, nNodes, part, k):
+def checkBalance(G, part, k):
     dd=[0]*k
     unbal=-1
     for i in range(k):
