@@ -23,7 +23,7 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
                 else:
                     is_ok[i] = -1
             part3 = makePermutation(G, nNodes, k, sample)
-            unbal = checkBalance(G, nNodes, part3, k) # Check if partition balanced
+            unbal = checkBalance(G, part3, k) # Check if partition balanced
             
         # partition graph into 3 parts
         lG = nx.Graph()
