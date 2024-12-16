@@ -66,3 +66,11 @@ def makePermutation(G, nNodes, k, sample):
             if sample[i*nNodes+u] == 1:
                 part[u] = i
     return part
+
+# function to print info about the graph G
+def print_graph(G):
+    print("Graph on {} nodes created with {} out of {} possible edges.".format(
+        len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
+    print("nodes", G.nodes)
+    return 0
+    print("edges", G.edges)
