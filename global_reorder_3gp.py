@@ -3,7 +3,7 @@ import math
 import sys
 from collections import Counter
 import time
-from utils import solve_QUBO, checkBalance, makePermutation, print_graph, calculateSWAP
+from utils import solve_QUBO, checkBalance, makePermutation, print_graph, calculateSWAP, select_circuit
 
 # function to perform balanced partitioning of graph G into 3 parts recursively
 def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
@@ -68,39 +68,55 @@ def graphPart(G, nparts, vdegree, total_ordering, trials,sim=False):
     return (total_ordering, trials)
 
 def main():
-    nq=6 # number of qubits needed to optimize double Toffoli or 2-4 decoder (4 + 2 additional qubits)
-    # nq=9 # number of qubits needed to optimize Hamming gate (7 + 2 additional qubits) or modified circuit from [31] (8 + 1 additional qubit)
-    # nq=18 # number of qubits needed to optimize multiplier (12 + 6 additional qubits)
-
-    sim=True # simulation mode, if True
-
+    # Create graph with nq vertices and edges from the set of circuit's gates
     G = nx.Graph()
-    G.add_nodes_from(range(nq))
-    # modified circuit from [31]
-    # G.add_weighted_edges_from([(3,4,1), (1,4,1),(0,5,1),(3,5,1),(0,6,1),(3,6,2),(2,5,1),(5,6,2),(2,6,1), (1,7,1)])
-    # set circuit's gates in a form of (control1, control2, target), if there is only one control, then control1=-1 and control2=control    
-    # gates = [(-1, 3, 4), (-1, 1, 4), (0, 3, 5), (0, 3, 6), (-1, 3, 6), (2, 6, 5), (2, 5, 6), (-1, 1, 7)]
-    # real_nq=8 # number of circuit within the circuit originally
+
+    pr = input("Which quantum circuit would you like to optimize (CNOT-based, double Toffoli, mutilplier gate, Hamming or 2-4 decoder)? Press the corresponding index (starting with 1).")
+    pr1 = input("Which mode would you like to run: Quantum Annealing or Simulated Annealing? Press 1 for Quantum Annealing and 0 otherwise.")
+    cnotbased, dToffoli, multipler, hamming, decod, sim = select_circuit(pr,pr1)
+
+    if dToffoli:
+        # double Toffoli gate
+        real_nq = 4 # original number of qubits within the circuit
+        nq = 6 # total number of qubits (+2 additional qubits)
+        # set circuit's gates in a form of (control1, control2, target), if there is only one control, then control1=-1 and control2=control
+        gates = [(-1,2,1),(-1,1,0),(-1,0,3),(-1,1,0),(-1,0,3),(-1,1,3),(-1,2,1)]
+        for i in range(nq):
+            G.add_node(i)
+        G.add_weighted_edges_from([(2,1,2),(1,0,2),(0,3,2),(1,3,1)]) # weighted edge between control and target
+    elif cnotbased:
+        # modified circuit [31]
+        real_nq = 8
+        nq = 9 # +1 additional qubit
+        gates = [(-1, 3, 4), (-1, 1, 4), (0, 3, 5), (0, 3, 6), (-1, 3, 6), (2, 6, 5), (2, 5, 6), (-1, 1, 7)]
+        for i in range(nq):
+            G.add_node(i)
+        G.add_weighted_edges_from([(3,4,1), (1,4,1),(0,5,1),(3,5,1),(0,6,1),(3,6,2),(2,5,1),(5,6,2),(2,6,1), (1, 7, 1)])
+    elif multipler:
+        # multiplier
+        real_nq = 12
+        nq = 18 # +6 additional qubits
+        gates = [(3,5,8),(2,6,8),(1,7,8),(3,6,9),(2,7,9),(3,7,10),(-1,10,11),(-1,9,10),(-1,8,9),(3,4,11),(2,5,11),(1,6,11),(0,7,11),(2,4,10),(1,5,10),(0,6,10),(1,4,9),(0,5,9),(0,4,8)]
+        for i in range(nq):
+            G.add_node(i)
+        G.add_weighted_edges_from([(3,8,1),(5,8,1),(2,8,1),(6,8,1),(1,8,1),(7,8,1),(3,9,1),(6,9,1),(2,9,1),(7,9,1),(3,10,1),(7,10,1),(10,11,1),(9,10,1),(8,9,1),(3,11,1),(4,11,1),(2,11,1),(5,11,1),(1,11,1),(6,11,1),(0,11,1),(7,11,1),(2,10,1),(4,10,1),(1,10,1),(5,10,1),(0,10,1),(6,10,1),(1,9,1),(4,9,1),(0,9,1),(5,9,1),(0,8,1),(4,8,1)])        
+    elif hamming:
+        # Hamming gate
+        real_nq = 7 
+        nq = 9 # +2 additional qubit
+        gates = [(-1,4,5),(-1,6,1),(-1,6,2),(4,5,6),(-1,6,4),(-1,6,5),(-1,3,2),(-1,3,0),(-1,3,1),(2,5,3),(4,6,2),(2,5,3),(-1,3,1),(5,6,4),(-1,3,0),(-1,3,5),(4,6,3),(-1,1,4),(-1,2,1),(-1,3,6),(-1,2,5),(-1,1,3),(-1,3,0),(-1,0,3),(-1,0,2)]
+        for i in range(nq):
+            G.add_node(i)
+        G.add_weighted_edges_from([(4,5,2),(6,1,1),(6,2,2),(4,6,3),(5,6,2),(3,2,3),(3,0,4),(3,1,3),(5,3,3),(4,2,1),(4,3,1),(6,3,2),(1,4,1),(2,1,1),(2,5,1),(0,2,1)])       
+    else:
+        # 2-4 decoder
+        real_nq = 4
+        nq = 6 # +2 additional qubits
+        gates = [(-1,2,1),(-1,3,1),(-1,3,0),(-1,0,2),(-1,2,1),(-1,1,2),(-1,2,0),(-1,1,3)] 
+        for i in range(nq):
+            G.add_node(i)
+        G.add_weighted_edges_from([(2,1,3),(3,1,2),(3,0,1),(0,2,2)])
     
-    # multiplier gate
-    # G.add_weighted_edges_from([(3,8,1),(5,8,1),(2,8,1),(6,8,1),(1,8,1),(7,8,1),(3,9,1),(6,9,1),(2,9,1),(7,9,1),(3,10,1),(7,10,1),(10,11,1),(9,10,1),(8,9,1),(3,11,1),(4,11,1),(2,11,1),(5,11,1),(1,11,1),(6,11,1),(0,11,1),(7,11,1),(2,10,1),(4,10,1),(1,10,1),(5,10,1),(0,10,1),(6,10,1),(1,9,1),(4,9,1),(0,9,1),(5,9,1),(0,8,1),(4,8,1)])
-    # gates = [(3,5,8),(2,6,8),(1,7,8),(3,6,9),(2,7,9),(3,7,10),(-1,10,11),(-1,9,10),(-1,8,9),(3,4,11),(2,5,11),(1,6,11),(0,7,11),(2,4,10),(1,5,10),(0,6,10),(1,4,9),(0,5,9),(0,4,8)]
-    # real_nq = 12
-    
-    # Hamming gate 
-    # G.add_weighted_edges_from([(4,5,2),(6,1,1),(6,2,2),(4,6,3),(5,6,2),(3,2,3),(3,0,4),(3,1,3),(5,3,3),(4,2,1),(4,3,1),(6,3,2),(1,4,1),(2,1,1),(2,5,1),(0,2,1)])
-    # gates = [(-1,4,5),(-1,6,1),(-1,6,2),(4,5,6),(-1,6,4),(-1,6,5),(-1,3,2),(-1,3,0),(-1,3,1),(2,5,3),(4,6,2),(2,5,3),(-1,3,1),(5,6,4),(-1,3,0),(-1,3,5),(4,6,3),(-1,1,4),(-1,2,1),(-1,3,6),(-1,2,5),(-1,1,3),(-1,3,0),(-1,0,3),(-1,0,2)]
-    # real_nq = 7
-    
-    # double Toffoli date
-    G.add_weighted_edges_from([(2,1,2),(1,0,2),(0,3,2),(1,3,1)])
-    gates = [(-1,2,1),(-1,1,0),(-1,0,3),(-1,1,0),(-1,0,3),(-1,1,3),(-1,2,1)]
-    real_nq = 4
-    
-    # 2-4 decoder
-    # G.add_weighted_edges_from([(2,1,3),(3,1,2),(3,0,1),(0,2,2)])
-    # gates = [(-1,2,1),(-1,3,1),(-1,3,0),(-1,0,2),(-1,2,1),(-1,1,2),(-1,2,0),(-1,1,3)] 
-    # real_nq = 4
     
     vdegree = list(dict(G.degree(weight="weight")).values())
     nparts = nq
