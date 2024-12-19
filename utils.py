@@ -8,7 +8,6 @@ from neal import SimulatedAnnealingSampler
 # ------- Set tunable parameters -------
 num_reads = 1000
 
-# function to partition graph G into k parts using Quantum Annealing or Simulated Annealing
 def solve_QUBO(G, vdegree, k, sim):
     # ------- Set up our QUBO dictionary -------
     # Initialize our Q matrix
@@ -16,7 +15,7 @@ def solve_QUBO(G, vdegree, k, sim):
 
     nNodes = len(G.nodes)
  
-    alpha_lagr = 4 # penalty constant
+    alpha_lagr = 4
     for i in range(k):
         for u in range(len(G.nodes)):
             Q[(i*nNodes+u,i*nNodes+u)] += vdegree[u] + (1-2*nNodes/k)*alpha_lagr - alpha_lagr
@@ -29,7 +28,8 @@ def solve_QUBO(G, vdegree, k, sim):
             Q[(i*nNodes+u, j*nNodes+u)] += 2*alpha_lagr
 
     # Run the QUBO on the solver from your config file
-    if sim: # use Simulated Annealing in simulation mode
+
+    if sim:
         sampler = SimulatedAnnealingSampler()
         response = sampler.sample_qubo(Q,
                                    num_reads=num_reads,
@@ -46,7 +46,6 @@ def solve_QUBO(G, vdegree, k, sim):
 
     return sample
 
-# function to check if partition is balanced 
 def checkBalance(G, part, k):
     dd=[0]*k
     unbal=-1
@@ -58,7 +57,6 @@ def checkBalance(G, part, k):
             unbal=-1
     return unbal
 
-# function to convert binary sample to qubit permutation
 def makePermutation(G, nNodes, k, sample):
     part = [-1]*nNodes
     for i in range(k):
@@ -67,15 +65,6 @@ def makePermutation(G, nNodes, k, sample):
                 part[u] = i
     return part
 
-# function to print info about the graph G
-def print_graph(G):
-    print("Graph on {} nodes created with {} out of {} possible edges.".format(
-        len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
-    print("nodes", G.nodes)
-    return 0
-    print("edges", G.edges)
-
-# function to calculate SWAP count according to the final qubit permutaion
 def calculateSWAP(total_ordering, gates):
     sum=0
     for u, v, w in gates:
@@ -105,3 +94,51 @@ def calculateSWAP(total_ordering, gates):
         else:
             sum+=abs(ind_v-ind_w) - 1
     return sum
+
+def print_graph(G):
+    print("Graph on {} nodes created with {} out of {} possible edges.".format(
+        len(G.nodes), len(G.edges), len(G.nodes) * (len(G.nodes)-1) / 2))
+
+def select_circuit(pr,pr1):
+    if pr == "1":
+        cnotbased = True
+        dToffoli = False
+        multipler = False
+        hamming = False
+        decod = False
+    elif pr == "2":
+        cnotbased = False
+        dToffoli = True
+        multipler = False
+        hamming = False
+        decod = False
+    elif pr == "3":
+        cnotbased = False
+        dToffoli = False
+        multipler = True
+        hamming = False
+        decod = False
+    elif pr == "4":
+        cnotbased = False
+        dToffoli = False
+        multipler = False
+        hamming = True
+        decod = False
+    elif pr == "5":
+        cnotbased = False
+        dToffoli = False
+        multipler = False
+        hamming = False
+        decod = True
+    else:
+        print("[ERROR] string is not valid, exiting...")
+        exit(2)
+    
+    if pr1 == "1":
+        sim=False
+    elif pr1 == "0":
+        sim=True
+    else:
+        print("[ERROR] string is not valid, exiting...")
+        exit(2)
+    return cnotbased, dToffoli, multipler, hamming, decod, sim
