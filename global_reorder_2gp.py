@@ -22,7 +22,7 @@ import math
 from neal import SimulatedAnnealingSampler
 import sys
 from collections import Counter
-from utils import calculateSWAP
+from utils import calculateSWAP, select_circuit
 
 def solve_QUBO(G, trials, sim):
     # ------- Set up our QUBO dictionary -------
@@ -126,40 +126,8 @@ def main():
     G = nx.Graph()
 
     pr = input("Which quantum circuit would you like to optimize (CNOT-based, double Toffoli, mutilplier gate, Hamming or 2-4 decoder)? Press the corresponding index (starting with 1).")
-    if pr == "1":
-        cnotbased = True
-        dToffoli = False
-        multipler = False
-        hamming = False
-        decod = False
-    elif pr == "2":
-        cnotbased = False
-        dToffoli = True
-        multipler = False
-        hamming = False
-        decod = False
-    elif pr == "3":
-        cnotbased = False
-        dToffoli = False
-        multipler = True
-        hamming = False
-        decod = False
-    elif pr == "4":
-        cnotbased = False
-        dToffoli = False
-        multipler = False
-        hamming = True
-        decod = False
-    elif pr == "5":
-        cnotbased = False
-        dToffoli = False
-        multipler = False
-        hamming = False
-        decod = True
-    else:
-        print("[ERROR] string is not valid, exiting...")
-        exit(2)
-
+    pr1 = input("Which mode would you like to run: Quantum Annealing or Simulated Annealing? Press 1 for Quantum Annealing and 0 otherwise.")
+    cnotbased, dToffoli, multipler, hamming, decod, sim = select_circuit(pr,pr1)
 
     if dToffoli:
         # double Toffoli gate
@@ -202,15 +170,6 @@ def main():
         for i in range(nq):
             G.add_node(i)
         G.add_weighted_edges_from([(2,1,3),(3,1,2),(3,0,1),(0,2,2)])
-                
-    pr1 = input("Which mode would you like to run: Quantum Annealing or Simulated Annealing? Press 1 for Quantum Annealing and 0 otherwise.")
-    if pr1 == "1":
-        sim=False
-    elif pr1 == "0":
-        sim=True
-    else:
-        print("[ERROR] string is not valid, exiting...")
-        exit(2)
     
     nparts = nq # number of parts to be made
 
